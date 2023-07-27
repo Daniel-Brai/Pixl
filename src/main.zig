@@ -8,7 +8,7 @@ const Texture2DArrayList = std.ArrayList(c.Texture2D);
 
 const CYCLE_FILTER_KEY = c.KEY_S;
 const CLEAR_TEXTURE_KEY = c.KEY_DELETE;
-const MOUSE_WHEEL_MOVING_SENSITIVITY = 0.01;
+const MOUSE_WHEEL_MOVE_SENSITIVITY = 0.01;
 
 pub fn main() error{OutOfMemory}!void {
     c.SetConfigFlags(c.FLAG_WINDOW_RESIZABLE | c.FLAG_VSYNC_HINT);
@@ -31,6 +31,7 @@ pub fn main() error{OutOfMemory}!void {
     var default_texture_filter = c.TEXTURE_FILTER_TRILINEAR;
     var translation = c.Vector2{ .x = 0, .y = 0 };
     var zoom: f32 = 1;
+    var rotation: f32 = 0;
 
     while (!c.WindowShouldClose()) {
         if (c.IsKeyPressed(CLEAR_TEXTURE_KEY)) {
@@ -54,7 +55,11 @@ pub fn main() error{OutOfMemory}!void {
         const mouse_wheel_move = c.GetMouseWheelMove();
 
         if (mouse_wheel_move != 0) {
-            zoom += mouse_wheel_move * MOUSE_WHEEL_MOVING_SENSITIVITY;
+            if (c.IsKeyDown(c.KEY_LEFT_SHIFT)) {
+                rotation += mouse_wheel_move;
+            } else {
+                zoom += mouse_wheel_move * MOUSE_WHEEL_MOVE_SENSITIVITY;
+            }
         }
 
         if (c.IsFileDropped()) {
