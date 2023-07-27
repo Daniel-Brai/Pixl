@@ -6,4 +6,9 @@ const c = @cImport({
 pub fn main() void {
     c.InitWindow(750, 500, "Pixl");
     defer c.CloseWindow();
+
+    while (!c.WindowShouldClose()) {
+        c.BeginDrawing();
+        defer c.EndDrawing();
+    }
 }

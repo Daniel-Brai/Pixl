@@ -17,8 +17,8 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const raylib = raylib_build.addRaylib(b, target, optimize, .{
-        .raygui = true,
-        .platform_drm = true,
+        .raygui = false,
+        .platform_drm = false,
     });
 
     const exe = b.addExecutable(.{
