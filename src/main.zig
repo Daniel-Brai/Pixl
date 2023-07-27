@@ -33,6 +33,15 @@ pub fn main() error{OutOfMemory}!void {
     var zoom: f32 = 1;
     var rotation: f32 = 0;
 
+    const VECTOR2ZERO = c.Vector2Zero();
+
+    var camera = c.Camera2D{
+        .offset = VECTOR2ZERO,
+        .distance = VECTOR2ZERO,
+        .rotation = 0,
+        .zoom = 1,
+    };
+
     while (!c.WindowShouldClose()) {
         if (c.IsKeyPressed(CLEAR_TEXTURE_KEY)) {
             for (textures.items) |texture| {
@@ -85,11 +94,17 @@ pub fn main() error{OutOfMemory}!void {
             defer c.EndDrawing();
 
             c.ClearBackground(c.WHITE);
+
             var x: f32 = 0;
 
-            for (textures.items) |texture| {
-                c.DrawTextureEx(texture, c.Vector2{ .x = x + translation.x, .y = translation.y }, 0, zoom, c.WHITE);
-                x += @as(f32, @floatFromInt(texture.width)) * 0.25;
+            {
+                c.BeginMode2D(camera);
+                defer c.EndMode2D();
+
+                for (textures.items) |texture| {
+                    c.DrawTextureEx(texture, c.Vector2{ .x = x + translation.x, .y = translation.y }, 0, zoom, c.WHITE);
+                    x += @as(f32, @floatFromInt(texture.width)) * 0.25;
+                }
             }
         }
     }
