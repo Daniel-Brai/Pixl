@@ -24,14 +24,27 @@ pub fn main() error{OutOfMemory}!void {
     }
 
     while (!c.WindowShouldClose()) {
+        if (c.IsKeyPressed(c.KEY_DELETE)) {
+            for (textures.items) |texture| {
+                c.UnloadTexture(texture);
+            }
+            textures.clearRetainingCapacity();
+        }
+
         if (c.IsFileDropped()) {
             const dropped_files = c.LoadDroppedFiles();
             defer c.UnloadDroppedFiles(dropped_files);
 
             const dropped_files_slice = dropped_files.paths[0..dropped_files.count];
             for (dropped_files_slice) |dropped_file_path| {
-                const texture = c.LoadTexture(dropped_file_path);
+                var texture = c.LoadTexture(dropped_file_path);
                 if (texture.id == 0) continue;
+                c.GenTextureMipmaps(&texture);
+
+                if (texture.mipmaps == 1) {
+                    std.debug.print("{s}", .{"Texture Mipmaps failed to generate!\n"});
+                }
+                c.SetTextureFilter(texture, c.TEXTURE_FILTER_TRILINEAR);
                 try textures.append(texture);
             }
         }
@@ -39,6 +52,14 @@ pub fn main() error{OutOfMemory}!void {
         {
             c.BeginDrawing();
             defer c.EndDrawing();
+
+            c.ClearBackground(c.WHITE);
+            var x: f32 = 0;
+
+            for (textures.items) |texture| {
+                c.DrawTextureEx(texture, c.Vector2{ .x = x, .y = 0 }, 0, 0.25, c.WHITE);
+                x += @as(f32, @floatFromInt(texture.width)) * 0.25;
+            }
         }
     }
 }
