@@ -9,6 +9,7 @@ const Texture2DArrayList = std.ArrayList(c.Texture2D);
 const CYCLE_FILTER_KEY = c.KEY_S;
 const CLEAR_TEXTURE_KEY = c.KEY_DELETE;
 const MOUSE_WHEEL_MOVE_SENSITIVITY = 0.01;
+const VECTOR2ZERO = c.Vector2Zero();
 
 pub fn main() error{OutOfMemory}!void {
     c.SetConfigFlags(c.FLAG_WINDOW_RESIZABLE | c.FLAG_VSYNC_HINT);
@@ -29,15 +30,12 @@ pub fn main() error{OutOfMemory}!void {
     }
 
     var default_texture_filter = c.TEXTURE_FILTER_TRILINEAR;
-    var translation = c.Vector2{ .x = 0, .y = 0 };
-    var zoom: f32 = 1;
-    var rotation: f32 = 0;
-
-    const VECTOR2ZERO = c.Vector2Zero();
+    var target_zoom: f32 = 1;
+    var target_rotation: f32 = 0;
 
     var camera = c.Camera2D{
         .offset = VECTOR2ZERO,
-        .distance = VECTOR2ZERO,
+        .target = VECTOR2ZERO,
         .rotation = 0,
         .zoom = 1,
     };
@@ -58,16 +56,21 @@ pub fn main() error{OutOfMemory}!void {
         }
 
         if (c.IsMouseButtonDown(c.MOUSE_LEFT_BUTTON)) {
-            translation = c.Vector2Add(translation, c.GetMouseDelta());
+            camera.target = c.Vector2Add(camera.target, c.Vector2Negate(c.GetMouseDelta()));
         }
 
         const mouse_wheel_move = c.GetMouseWheelMove();
 
         if (mouse_wheel_move != 0) {
             if (c.IsKeyDown(c.KEY_LEFT_SHIFT)) {
-                rotation += mouse_wheel_move;
+                target_rotation += mouse_wheel_move;
             } else {
-                zoom += mouse_wheel_move * MOUSE_WHEEL_MOVE_SENSITIVITY;
+                target_zoom += mouse_wheel_move * MOUSE_WHEEL_MOVE_SENSITIVITY;
+                const mouse_position = c.GetMousePosition();
+
+                camera.target = c.GetScreenToWorld2D(mouse_position, camera);
+                camera.offset = mouse_position;
+                camera.zoom = target_zoom;
             }
         }
 
@@ -95,15 +98,15 @@ pub fn main() error{OutOfMemory}!void {
 
             c.ClearBackground(c.WHITE);
 
-            var x: f32 = 0;
+            var x: i32 = 0;
 
             {
                 c.BeginMode2D(camera);
                 defer c.EndMode2D();
 
                 for (textures.items) |texture| {
-                    c.DrawTextureEx(texture, c.Vector2{ .x = x + translation.x, .y = translation.y }, 0, zoom, c.WHITE);
-                    x += @as(f32, @floatFromInt(texture.width)) * 0.25;
+                    c.DrawTexture(texture, x, 0, c.WHITE);
+                    x += texture.width;
                 }
             }
         }
