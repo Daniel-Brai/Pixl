@@ -23,12 +23,21 @@ pub fn main() error{OutOfMemory}!void {
         textures.deinit();
     }
 
+    var default_texture_filter = c.TEXTURE_FILTER_TRILINEAR;
+
     while (!c.WindowShouldClose()) {
         if (c.IsKeyPressed(c.KEY_DELETE)) {
             for (textures.items) |texture| {
                 c.UnloadTexture(texture);
             }
             textures.clearRetainingCapacity();
+        }
+
+        if (c.IsKeyPressed(c.KEY_S)) {
+            default_texture_filter = @mod(default_texture_filter + 1, 3);
+            for (textures.items) |texture| {
+                c.SetTextureFilter(texture, default_texture_filter);
+            }
         }
 
         if (c.IsFileDropped()) {
@@ -44,7 +53,7 @@ pub fn main() error{OutOfMemory}!void {
                 if (texture.mipmaps == 1) {
                     std.debug.print("{s}", .{"Texture Mipmaps failed to generate!\n"});
                 }
-                c.SetTextureFilter(texture, c.TEXTURE_FILTER_TRILINEAR);
+                c.SetTextureFilter(texture, default_texture_filter);
                 try textures.append(texture);
             }
         }
