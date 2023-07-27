@@ -1,9 +1,14 @@
 const std = @import("std");
 const c = @cImport({
     @cInclude("raylib.h");
+    @cInclude("raymath.h");
 });
 
 const Texture2DArrayList = std.ArrayList(c.Texture2D);
+
+const CYCLE_FILTER_KEY = c.KEY_S;
+const CLEAR_TEXTURE_KEY = c.KEY_DELETE;
+const MOUSE_WHEEL_MOVING_SENSITIVITY = 0.01;
 
 pub fn main() error{OutOfMemory}!void {
     c.SetConfigFlags(c.FLAG_WINDOW_RESIZABLE | c.FLAG_VSYNC_HINT);
@@ -24,20 +29,32 @@ pub fn main() error{OutOfMemory}!void {
     }
 
     var default_texture_filter = c.TEXTURE_FILTER_TRILINEAR;
+    var translation = c.Vector2{ .x = 0, .y = 0 };
+    var zoom: f32 = 1;
 
     while (!c.WindowShouldClose()) {
-        if (c.IsKeyPressed(c.KEY_DELETE)) {
+        if (c.IsKeyPressed(CLEAR_TEXTURE_KEY)) {
             for (textures.items) |texture| {
                 c.UnloadTexture(texture);
             }
             textures.clearRetainingCapacity();
         }
 
-        if (c.IsKeyPressed(c.KEY_S)) {
+        if (c.IsKeyPressed(CYCLE_FILTER_KEY)) {
             default_texture_filter = @mod(default_texture_filter + 1, 3);
             for (textures.items) |texture| {
                 c.SetTextureFilter(texture, default_texture_filter);
             }
+        }
+
+        if (c.IsMouseButtonDown(c.MOUSE_LEFT_BUTTON)) {
+            translation = c.Vector2Add(translation, c.GetMouseDelta());
+        }
+
+        const mouse_wheel_move = c.GetMouseWheelMove();
+
+        if (mouse_wheel_move != 0) {
+            zoom += mouse_wheel_move * MOUSE_WHEEL_MOVING_SENSITIVITY;
         }
 
         if (c.IsFileDropped()) {
@@ -66,7 +83,7 @@ pub fn main() error{OutOfMemory}!void {
             var x: f32 = 0;
 
             for (textures.items) |texture| {
-                c.DrawTextureEx(texture, c.Vector2{ .x = x, .y = 0 }, 0, 0.25, c.WHITE);
+                c.DrawTextureEx(texture, c.Vector2{ .x = x + translation.x, .y = translation.y }, 0, zoom, c.WHITE);
                 x += @as(f32, @floatFromInt(texture.width)) * 0.25;
             }
         }
