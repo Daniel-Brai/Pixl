@@ -6,7 +6,7 @@ A simple image viewer application for multiple image formats such as jpg, png, w
 2. Zig 0.11.0-dev.4234+dc2483516 
 
 ## Features
-- [X] Drop and Drop for single and multiple image viewing
+- [X] Drag and Drop for single and multiple image viewing
 - [X] Zoom and Rotation orientation based on mouse and keyboard interactions
 - [ ] Add support for trackpad interactions
 
