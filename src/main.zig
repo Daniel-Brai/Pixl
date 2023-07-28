@@ -6,10 +6,15 @@ const c = @cImport({
 
 const Texture2DArrayList = std.ArrayList(c.Texture2D);
 
+const APPLICATION_TITLE = "Pixl";
+const VECTOR2ZERO = c.Vector2Zero();
 const CYCLE_FILTER_KEY = c.KEY_S;
 const CLEAR_TEXTURE_KEY = c.KEY_DELETE;
-const ZOOM_SENSITIVITY = 0.01;
-const VECTOR2ZERO = c.Vector2Zero();
+const TOGGLE_FULLSCREEN_KEY = c.KEY_F;
+const ZOOM_SENSITIVITY = 0.08;
+const ZOOM_DURATION = 0.2;
+const ROTATION_SENSITIVITY = 15;
+const ROTATION_DURATION = 0.2;
 
 fn focusCamera(camera: *c.Camera2D, screen_position: c.Vector2) void {
     camera.*.target = c.GetScreenToWorld2D(screen_position, camera.*);
@@ -18,7 +23,7 @@ fn focusCamera(camera: *c.Camera2D, screen_position: c.Vector2) void {
 
 pub fn main() error{OutOfMemory}!void {
     c.SetConfigFlags(c.FLAG_WINDOW_RESIZABLE | c.FLAG_VSYNC_HINT);
-    c.InitWindow(750, 500, "Pixl");
+    c.InitWindow(750, 500, APPLICATION_TITLE);
     defer c.CloseWindow();
 
     var arena = std.heap.ArenaAllocator.init(std.heap.c_allocator);
@@ -46,6 +51,10 @@ pub fn main() error{OutOfMemory}!void {
     };
 
     while (!c.WindowShouldClose()) {
+        if (c.IsKeyPressed(TOGGLE_FULLSCREEN_KEY)) {
+            c.ToggleFullscreen();
+        }
+
         if (c.IsKeyPressed(CLEAR_TEXTURE_KEY)) {
             for (textures.items) |texture| {
                 c.UnloadTexture(texture);
@@ -65,15 +74,23 @@ pub fn main() error{OutOfMemory}!void {
 
         if (mouse_wheel_move != 0) {
             if (c.IsKeyDown(c.KEY_LEFT_SHIFT)) {
-                target_rotation += mouse_wheel_move;
+                target_rotation += mouse_wheel_move * ROTATION_SENSITIVITY;
                 focusCamera(&camera, mouse_position);
-                camera.rotation = target_rotation;
             } else {
                 target_zoom = std.math.max(target_zoom + mouse_wheel_move * ZOOM_SENSITIVITY, ZOOM_SENSITIVITY);
                 focusCamera(&camera, mouse_position);
-                camera.zoom = target_zoom;
             }
         }
+
+        if (c.IsMouseButtonDown(c.MOUSE_MIDDLE_BUTTON)) {
+            focusCamera(&camera, mouse_position);
+            target_zoom = 1;
+        }
+
+        const FRAME_DELTA_TIME = c.GetFrameTime();
+
+        camera.zoom *= std.math.pow(f32, target_zoom / camera.zoom, FRAME_DELTA_TIME / ZOOM_DURATION);
+        camera.rotation = c.Lerp(camera.rotation, target_rotation, FRAME_DELTA_TIME / ROTATION_DURATION);
 
         if (c.IsMouseButtonDown(c.MOUSE_LEFT_BUTTON)) {
             const translation = c.Vector2Negate(c.Vector2Scale(c.GetMouseDelta(), 1 / target_zoom));
