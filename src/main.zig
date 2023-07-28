@@ -8,8 +8,13 @@ const Texture2DArrayList = std.ArrayList(c.Texture2D);
 
 const CYCLE_FILTER_KEY = c.KEY_S;
 const CLEAR_TEXTURE_KEY = c.KEY_DELETE;
-const MOUSE_WHEEL_MOVE_SENSITIVITY = 0.01;
+const ZOOM_SENSITIVITY = 0.01;
 const VECTOR2ZERO = c.Vector2Zero();
+
+fn focusCamera(camera: *c.Camera2D, screen_position: c.Vector2) void {
+    camera.*.target = c.GetScreenToWorld2D(screen_position, camera.*);
+    camera.*.target = screen_position;
+}
 
 pub fn main() error{OutOfMemory}!void {
     c.SetConfigFlags(c.FLAG_WINDOW_RESIZABLE | c.FLAG_VSYNC_HINT);
@@ -55,23 +60,24 @@ pub fn main() error{OutOfMemory}!void {
             }
         }
 
-        if (c.IsMouseButtonDown(c.MOUSE_LEFT_BUTTON)) {
-            camera.target = c.Vector2Add(camera.target, c.Vector2Negate(c.GetMouseDelta()));
-        }
-
         const mouse_wheel_move = c.GetMouseWheelMove();
+        const mouse_position = c.GetMousePosition();
 
         if (mouse_wheel_move != 0) {
             if (c.IsKeyDown(c.KEY_LEFT_SHIFT)) {
                 target_rotation += mouse_wheel_move;
+                focusCamera(&camera, mouse_position);
+                camera.rotation = target_rotation;
             } else {
-                target_zoom += mouse_wheel_move * MOUSE_WHEEL_MOVE_SENSITIVITY;
-                const mouse_position = c.GetMousePosition();
-
-                camera.target = c.GetScreenToWorld2D(mouse_position, camera);
-                camera.offset = mouse_position;
+                target_zoom = std.math.max(target_zoom + mouse_wheel_move * ZOOM_SENSITIVITY, ZOOM_SENSITIVITY);
+                focusCamera(&camera, mouse_position);
                 camera.zoom = target_zoom;
             }
+        }
+
+        if (c.IsMouseButtonDown(c.MOUSE_LEFT_BUTTON)) {
+            const translation = c.Vector2Negate(c.Vector2Scale(c.GetMouseDelta(), 1 / target_zoom));
+            camera.target = c.Vector2Add(camera.target, c.Vector2Rotate(translation, -camera.rotation * c.DEG2RAD));
         }
 
         if (c.IsFileDropped()) {
